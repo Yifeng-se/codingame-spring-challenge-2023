@@ -111,7 +111,7 @@ while True:
     for i in range(number_of_cells):
         if all_cells[i].resources:
             # print(f"{i}, {total_my_ants} {all_cells[i].distance}, {total_crystals} {total_eggs}", file=sys.stderr, flush=True)
-            values[i]=all_cells[i].resources*(100/total_my_ants*total_crystals/total_eggs if resource_type[i]==1 else 1)*1.0/all_cells[i].distance
+            values[i]=(100/total_my_ants*total_crystals/total_eggs if resource_type[i]==1 else 1)*1.0/all_cells[i].distance #all_cells[i].resources*
             dist_crystal[i]=all_cells[i].distance
     # Write an action using print
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
