@@ -115,20 +115,28 @@ while True:
     sorted_dist_crystal = dict(sorted(dist_crystal.items(), key=lambda x: x[1]))
     iterator = iter(sorted_crystal)
     print(f"crystal: {values}", file=sys.stderr, flush=True)
-    if all(key in values for key in pre_dest) and len(set(pre_dest)) == 3:
-        dest = pre_dest[:]
-    else:
-        dest = []
-        dest.append(next(iterator))
-        if len(values) > 1:
-            dest.append(next(iterator))
-        if len(values) > 2:
-            dest.append(next(iterator))
+
+    dest = []
+    for i in pre_dest:
+        if all_cells[i].resources > 0:
+            dest.append(i)
+    for i in iterator:
+        if len(dest) >= math.floor(total_my_ants/10)+1:
+            break
+        if i not in dest:
+            dest.append(i)
+
         #dest.append(next(iter(sorted_dist_crystal)))
 
     act = ""
     for i in dest:
         act += f"LINE {my_base_index[0]} {i} 1;"
+
+    #for k, y in sorted_crystal.items():
+    #    act += f"LINE {my_base_index[0]} {k} {round(y)};"
+    #print(f"act: {act}", file=sys.stderr, flush=True)
+    #final_act = ';'.join(act.split(';')[:round(total_my_ants/10)])
+
     # WAIT | LINE <sourceIdx> <targetIdx> <strength> | BEACON <cellIdx> <strength> | MESSAGE <text>
     print(f"{act}")
     pre_dest = dest[:]
