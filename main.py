@@ -61,7 +61,7 @@ print(f"len(all_cells): {len(all_cells)}", file=sys.stderr, flush=True)
 while len(flatten_all_cell_dist) != len(all_cells):
     l_tmp = []
     for c in all_cell_dist[-1]:
-        print(f"c: {c}", file=sys.stderr, flush=True)
+        #print(f"c: {c}", file=sys.stderr, flush=True)
         if all_cells[c].neigh_0 >= 0 and all_cells[c].neigh_0 not in flatten_all_cell_dist:
             if all_cells[all_cells[c].neigh_0].index not in l_tmp:
                 l_tmp.append(all_cells[all_cells[c].neigh_0].index)
@@ -96,6 +96,8 @@ while True:
     values.clear()
     dist_crystal.clear()
     total_my_ants = 0
+    total_crystals = 0
+    total_eggs = 0
     for i in range(number_of_cells):
         # resources: the current amount of eggs/crystals on this cell
         # my_ants: the amount of your ants on this cell
@@ -103,9 +105,13 @@ while True:
         resources, my_ants, opp_ants = [int(j) for j in input().split()]
         all_cells[i].set_curr(resources, my_ants, opp_ants)
         total_my_ants += my_ants
+        total_crystals += (resources if resources > 0 and resource_type[i] == 2 else 0)
+        total_eggs += (resources if resources > 0 and resource_type[i] == 1 else 0)
+
     for i in range(number_of_cells):
         if all_cells[i].resources:
-            values[i]=all_cells[i].resources*(100/total_my_ants if resource_type[i]==1 else 1)*1.0/all_cells[i].distance
+            # print(f"{i}, {total_my_ants} {all_cells[i].distance}, {total_crystals} {total_eggs}", file=sys.stderr, flush=True)
+            values[i]=all_cells[i].resources*(100/total_my_ants*total_crystals/total_eggs if resource_type[i]==1 else 1)*1.0/all_cells[i].distance
             dist_crystal[i]=all_cells[i].distance
     # Write an action using print
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
@@ -118,7 +124,7 @@ while True:
 
     dest = []
     for i in pre_dest:
-        if all_cells[i].resources > 0:
+        if all_cells[i].resources > 0 and all_cells[i].my_ants > 0:
             dest.append(i)
     for i in iterator:
         if len(dest) >= math.floor(total_my_ants/10)+1:
@@ -126,12 +132,30 @@ while True:
         if i not in dest:
             dest.append(i)
 
-        #dest.append(next(iter(sorted_dist_crystal)))
+    # Add dest neigh
+    dest_neigh = []
+    for i in dest:
+        if all_cells[all_cells[i].neigh_0].resources > 0 and all_cells[i].neigh_0 not in dest and all_cells[i].neigh_0 >= 0:
+            dest_neigh.append(all_cells[i].neigh_0)
+        if all_cells[all_cells[i].neigh_1].resources > 0 and all_cells[i].neigh_1 not in dest and all_cells[i].neigh_1 >= 0:
+            dest_neigh.append(all_cells[i].neigh_1)
+        if all_cells[all_cells[i].neigh_2].resources > 0 and all_cells[i].neigh_2 not in dest and all_cells[i].neigh_2 >= 0:
+            dest_neigh.append(all_cells[i].neigh_2)
+        if all_cells[all_cells[i].neigh_3].resources > 0 and all_cells[i].neigh_3 not in dest and all_cells[i].neigh_3 >= 0:
+            dest_neigh.append(all_cells[i].neigh_3)
+        if all_cells[all_cells[i].neigh_4].resources > 0 and all_cells[i].neigh_4 not in dest and all_cells[i].neigh_4 >= 0:
+            dest_neigh.append(all_cells[i].neigh_4)
+        if all_cells[all_cells[i].neigh_5].resources > 0 and all_cells[i].neigh_5 not in dest and all_cells[i].neigh_5 >= 0:
+            dest_neigh.append(all_cells[i].neigh_5)
 
     act = ""
+    strength = len(dest)
     for i in dest:
-        act += f"LINE {my_base_index[0]} {i} 1;"
-
+        strength = 1
+        act += f"LINE {my_base_index[0]} {i} {strength};"
+        strength -= 1
+    for i in dest_neigh:
+        act += f"BEACON {i} 1;"
     #for k, y in sorted_crystal.items():
     #    act += f"LINE {my_base_index[0]} {k} {round(y)};"
     #print(f"act: {act}", file=sys.stderr, flush=True)
