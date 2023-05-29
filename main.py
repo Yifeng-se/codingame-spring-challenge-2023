@@ -9,7 +9,7 @@ all_cells = []
 
 class Cell:
     def __init__(self, i, _type, init_resources, neigh_0, neigh_1, neigh_2, neigh_3, neigh_4, neigh_5):
-        self._type = _type
+        self.resource_type = _type
         self.index = i
         self.init_resources = init_resources
 
@@ -19,6 +19,15 @@ class Cell:
         self.neigh_3 = neigh_3
         self.neigh_4 = neigh_4
         self.neigh_5 = neigh_5
+
+        self.resources = init_resources
+        self.my_ants = 0
+        self.opp_ants = 0
+
+    def set_curr(self, resources, my_ants, opp_ants):
+        self.resources = resources
+        self.my_ants = my_ants
+        self.opp_ants = opp_ants
 
 
 values = {}
@@ -82,16 +91,21 @@ for i in range(len(all_cell_dist)):
 # game loop
 dist_crystal = {}
 pre_dest = []
+
 while True:
     values.clear()
     dist_crystal.clear()
+    total_my_ants = 0
     for i in range(number_of_cells):
         # resources: the current amount of eggs/crystals on this cell
         # my_ants: the amount of your ants on this cell
         # opp_ants: the amount of opponent ants on this cell
         resources, my_ants, opp_ants = [int(j) for j in input().split()]
-        if resources:
-            values[i]=resources*(10 if resource_type[i]==1 else 1)*1.0/all_cells[i].distance
+        all_cells[i].set_curr(resources, my_ants, opp_ants)
+        total_my_ants += my_ants
+    for i in range(number_of_cells):
+        if all_cells[i].resources:
+            values[i]=all_cells[i].resources*(100/total_my_ants if resource_type[i]==1 else 1)*1.0/all_cells[i].distance
             dist_crystal[i]=all_cells[i].distance
     # Write an action using print
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
