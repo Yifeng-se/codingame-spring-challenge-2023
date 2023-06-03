@@ -18,11 +18,21 @@ class Cell:
         self.resources = init_resources
         self.my_ants = 0
         self.opp_ants = 0
+        self.distance_to_sources = []
 
     def set_curr(self, resources, my_ants, opp_ants):
         self.resources = resources
         self.my_ants = my_ants
         self.opp_ants = opp_ants
+
+class Base:
+    def __init__(self, i):
+        self.index = i
+
+        self.dest = []
+
+    def add_dests(self, i):
+        self.dest.append(i)
 
 def get_distance(i1, i2):
     if i1 == i2:
@@ -101,33 +111,23 @@ target_number /= 2
 number_of_bases = int(input())
 my_base_index = []
 for i in input().split():
-    my_base_index.append(int(i))
+    my_base_index.append(Base(int(i)))
 opp_base_index = []
 for i in input().split():
-    opp_base_index.append(int(i))
+    opp_base_index.append(Base(int(i)))
 
-# get all cell distance
-all_cell_dist = []
-all_cell_dist.append(my_base_index)
-flatten_all_cell_dist = [element for sublist in all_cell_dist for element in sublist]
-print(f"len(all_cells): {len(all_cells)}", file=sys.stderr, flush=True)
+# get all cell distance, each resource belongs to one base
+for c in all_cells:
+    for b in my_base_index:
+        c.distance_to_sources.append(get_distance(c.index, b.index))
+    c.belongs_to = c.distance_to_sources.index(min(c.distance_to_sources))
+    c.distance = min(c.distance_to_sources)
+    if c.resources > 0:
+        my_base_index[c.belongs_to].dest.append(c.index)
+    # print(f"Cell: {c.index} {c.distance_to_sources} {c.distance} {c.belongs_to}", file=sys.stderr, flush=True)
 
-while len(flatten_all_cell_dist) != len(all_cells):
-    l_tmp = []
-    for c in all_cell_dist[-1]:
-        #print(f"c: {c}", file=sys.stderr, flush=True)
-        for n in all_cells[c].neighs:
-            if n >= 0 and n not in flatten_all_cell_dist:
-                if all_cells[n].index not in l_tmp:
-                    l_tmp.append(all_cells[n].index)
-
-    all_cell_dist.append(l_tmp[:])
-    flatten_all_cell_dist = [element for sublist in all_cell_dist for element in sublist]
-
-print(f"all_cell_dist: {all_cell_dist}", file=sys.stderr, flush=True)
-for i in range(len(all_cell_dist)):
-    for c in all_cell_dist[i]:
-        all_cells[c].distance = i
+for b in my_base_index:
+    print(f"Base: {b.index} {b.dest}", file=sys.stderr, flush=True)
 
 # game loop
 pre_dest = []
