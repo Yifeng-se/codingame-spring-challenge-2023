@@ -34,7 +34,8 @@ def get_distance(i1, i2):
         curr_list = set()
         for c in distance_list:
             for n in all_cells[c].neighs:
-                curr_list.add(n)
+                if n >= 0:
+                    curr_list.add(n)
         if i2 in curr_list:
             break
         else:
@@ -42,29 +43,43 @@ def get_distance(i1, i2):
             curr_list = set()
     return i
 
-def find_closest_resource(s):
+def find_closest_resource(s, factor):
     check_list = [s]
-    already_checked = [s]
-    while True:
+    already_checked = set()
+    already_checked.add(s)
+    wish_list = {}
+    found_crystal = False
+    found_egg = False
+
+    while len(check_list) > 0:
         next_check_list = []
-        wish_list = {}
+
         for i in check_list:
-            # print(f"check_list: {check_list}", file=sys.stderr, flush=True)
+            # print(f"check_list: {check_list}, {all_cells[i].neighs}", file=sys.stderr, flush=True)
             # print(f"already_checked: {already_checked}", file=sys.stderr, flush=True)
+
             for n in all_cells[i].neighs:
                 if n >= 0 and all_cells[n].resources > 0:
-                    wish_list[n] = all_cells[n].distance
-                elif n >= 0 and n not in already_checked:
+                    if all_cells[n].resource_type==1:
+                        found_egg = True
+                    if all_cells[n].resource_type==2:
+                        found_crystal = True
+                    wish_list[n] = (factor if all_cells[n].resource_type==1 else 1)*1.0/get_distance(s, n)
+                if n >= 0 and n not in already_checked:
                     next_check_list.append(n)
-                    already_checked.append(n)
-        if len(wish_list) > 0:
-            sorted_wish_list = dict(sorted(wish_list.items(), key=lambda x: x[1]))
-            iterator = iter(sorted_wish_list)
-            n = next(iterator)
-            print(f"{s} is done, wish {wish_list}, found new target {n}", file=sys.stderr, flush=True)
-            return n
+                    already_checked.add(n)
 
         check_list = next_check_list[:]
+        if found_egg and found_crystal:
+            break
+    if len(wish_list) > 0:
+        max_value = max(wish_list.values())
+        max_keys = [key for key, value in wish_list.items() if value == max_value]
+        sub_list = [all_cells[i] for i in max_keys]
+        sub_list.sort(key=lambda obj: (obj.distance, -obj.resources))
+        n = sub_list[0].index
+        print(f"{s} is done, wish {wish_list}, found new target {n}", file=sys.stderr, flush=True)
+        return n
 
 values = {}
 resource_type = {}
@@ -91,14 +106,12 @@ opp_base_index = []
 for i in input().split():
     opp_base_index.append(int(i))
 
-# print(f"mybase: {my_base_index[0]}", file=sys.stderr, flush=True)
-
-
 # get all cell distance
 all_cell_dist = []
 all_cell_dist.append(my_base_index)
 flatten_all_cell_dist = [element for sublist in all_cell_dist for element in sublist]
 print(f"len(all_cells): {len(all_cells)}", file=sys.stderr, flush=True)
+
 while len(flatten_all_cell_dist) != len(all_cells):
     l_tmp = []
     for c in all_cell_dist[-1]:
@@ -117,12 +130,10 @@ for i in range(len(all_cell_dist)):
         all_cells[c].distance = i
 
 # game loop
-dist_crystal = {}
 pre_dest = []
 
 while True:
     values.clear()
-    dist_crystal.clear()
     total_my_ants = 0
     total_crystals = 0
     total_eggs = 0
@@ -137,19 +148,15 @@ while True:
         total_crystals += (resources if resources > 0 and resource_type[i] == 2 else 0)
         total_eggs += (resources if resources > 0 and resource_type[i] == 1 else 0)
 
-    factor = pow(10, pow((target_number - myScore)/target_number, 2))
-    print(f"factor:{factor}", file=sys.stderr, flush=True)
+    factor = pow(10, pow(2*((target_number - myScore)/target_number - 0.4), 1))
+    print(f"factor:{round(factor,2)} {round((target_number - myScore)/target_number,2)}", file=sys.stderr, flush=True)
     for i in range(number_of_cells):
         if all_cells[i].resources:
             # factor = (100/total_my_ants*total_crystals/total_eggs if resource_type[i]==1 else 1)
             values[i]=(factor if resource_type[i]==1 else 1)*1.0/all_cells[i].distance #all_cells[i].resources*
-            dist_crystal[i]=all_cells[i].distance
-    # Write an action using print
-    # To debug: print("Debug messages...", file=sys.stderr, flush=True)
-    # Only do re-calculate if one of the pre_dest is done
 
     sorted_crystal = dict(sorted(values.items(), key=lambda x: x[1], reverse=True))
-    sorted_dist_crystal = dict(sorted(dist_crystal.items(), key=lambda x: x[1]))
+
     iterator = iter(sorted_crystal)
     # print(f"crystal: {values}", file=sys.stderr, flush=True)
 
@@ -163,29 +170,29 @@ while True:
             finished_list.append(i)
     print(f"finished: {finished_list}", file=sys.stderr, flush=True)
     for i in finished_list:
-        closest_resource = find_closest_resource(i)
+        closest_resource = find_closest_resource(i, factor)
         if closest_resource not in dest:
             dest.append(closest_resource)
     print(f"pre_dest: {dest}", file=sys.stderr, flush=True)
-    for i in iterator:
-        b = False
-        for d in dest:
-            if all_cells[d].opp_ants and all_cells[d].my_ants:
-                double_strength.add(d)
-            if all_cells[d].opp_ants >= all_cells[d].my_ants \
-            and all_cells[d].my_ants:
-                b = True
-            #if not all_cells[d].my_ants:
-            #    b = True
-            if all_cells[d].my_ants and all_cells[d].resources / all_cells[d].my_ants > 5:
-                double_strength.add(d)
-                b = True
-        if b:
-            break
-        if i not in dest:
-            dest.append(i)
-        if len(dest) >= math.floor(total_my_ants/10):
-            break
+
+    add_routes = True
+    for d in dest:
+        if all_cells[d].opp_ants and all_cells[d].my_ants:
+            double_strength.add(d)
+        if all_cells[d].opp_ants >= all_cells[d].my_ants \
+        and all_cells[d].my_ants and all_cells[d].resources > all_cells[d].my_ants:
+            add_routes = False
+        #if not all_cells[d].my_ants:
+        #    b = True
+        if all_cells[d].my_ants and all_cells[d].resources / all_cells[d].my_ants > 5 \
+        and all_cells[d].resource_type == 1:
+            #double_strength.add(d)
+            add_routes = False
+    if add_routes and len(dest) < math.floor(total_my_ants/10):
+        for base in my_base_index:
+            d = find_closest_resource(base, factor)
+            if d not in dest:
+                dest.append(d)
     print(f"dest: {dest}", file=sys.stderr, flush=True)
     # print(f"double_strength: {double_strength}", file=sys.stderr, flush=True)
     # Add dest neigh
@@ -205,7 +212,6 @@ while True:
             src_1 = get_distance(my_base_index[1], i)
         else:
             src_1 = 99999
-        # print(f"dest: {i} {src_0} {src_1}", file=sys.stderr, flush=True)
         act += f"LINE {my_base_index[0] if src_0 < src_1 else my_base_index[1]} {i} {strength*2 if i in double_strength else strength};"
         strength -= 1
     for i in dest_neigh:
