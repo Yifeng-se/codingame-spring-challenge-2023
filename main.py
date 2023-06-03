@@ -82,13 +82,13 @@ def get_wish_list(s, factor):
 
         check_list = next_check_list[:]
         dist_to_s += 1
-        print(f"check_list: {check_list}, {dist_to_s}", file=sys.stderr, flush=True)
+        # print(f"check_list: {check_list}, {dist_to_s}", file=sys.stderr, flush=True)
         if (found_egg and factor<=1) \
         or (found_crystal and factor >=1) \
         or (found_crystal and found_egg) \
         or (dist_to_s >= all_cells[s].distance):
             break
-    print(f"wish_list: {wish_list}", file=sys.stderr, flush=True)
+    # print(f"wish_list: {wish_list}", file=sys.stderr, flush=True)
     return wish_list
 
 
@@ -199,6 +199,7 @@ while True:
     # routes can be from cell to cell, not necessary to be base to cell
     routes = []
     finished_routes = []
+    routes_length = 0
     double_strength = set()
     for r in pre_routes:
         if all_cells[r[1]].resources > 0: # and all_cells[i].my_ants > 0:
@@ -211,17 +212,19 @@ while True:
     #    if closest_resource not in dest:
     #        dest.append(closest_resource)
     #print(f"pre_dest: {dest}", file=sys.stderr, flush=True)
+    for r in routes:
+        routes_length += get_distance(r[0], r[1])
     base_has_dest = [obj for obj in my_base_index if len(obj.dest) > 0]
-    while len(routes) < len(base_has_dest):
-        curr_bases = [t[0] for t in routes]
-        # print(f"curr_bases: {curr_bases}, base_has_dest: {base_has_dest}", file=sys.stderr, flush=True)
+    route_add = 0
+    while (routes_length == 0) \
+        or (total_my_ants / routes_length >= 3 \
+            and route_add < max([len(b.sorted_dest) for b in base_has_dest])):
         for b in base_has_dest:
-            print(f"{b.index}", file=sys.stderr, flush=True)
-            if b.index not in curr_bases:
-                # find the target from b.index
-                routes.append((b.index, b.sorted_dest[0]))
-            else:
-                pass
+            # find the target from b.index
+            if len(b.sorted_dest) > route_add and (b.index, b.sorted_dest[route_add]) not in routes:
+                routes.append((b.index, b.sorted_dest[route_add]))
+                routes_length += get_distance(b.index, b.sorted_dest[route_add])
+        route_add += 1
 
     child_routes = []
     for d in routes:
@@ -242,7 +245,7 @@ while True:
             else:
                 child_routes.append((d[1], s))
 
-    print(f"routes: {routes} child_routes: {child_routes} double: {double_strength}", file=sys.stderr, flush=True)
+    print(f"my_ants {total_my_ants} routes: {routes} routes_length {routes_length} child_routes: {child_routes} double: {double_strength}", file=sys.stderr, flush=True)
 
     act = ""
     strength = len(routes)
@@ -253,7 +256,7 @@ while True:
     for r in child_routes:
         strength = 1
         #if all_cells[r[0]].my_ants > 0:
-        act += f"LINE {r[0]} {r[1]} {strength*2};"
+        act += f"LINE {r[0]} {r[1]} {strength};"
 
     # WAIT | LINE <sourceIdx> <targetIdx> <strength> | BEACON <cellIdx> <strength> | MESSAGE <text>
     print(f"{act}")
