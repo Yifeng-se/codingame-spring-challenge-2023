@@ -153,13 +153,19 @@ for c in all_cells:
 
 # game loop
 pre_routes = []
-
+my_pre_score = 0
+opp_pre_score = 0
 while True:
     values.clear()
     total_my_ants = 0
+    total_oop_ants = 0
     total_crystals = 0
     total_eggs = 0
     myScore, oppScore = [int(j) for j in input().split()]
+    my_delta_score = myScore - my_pre_score
+    opp_delta_score = oppScore - opp_pre_score
+    my_pre_score = myScore
+    opp_pre_score = oppScore
     for r in range(number_of_cells):
         # resources: the current amount of eggs/crystals on this cell
         # my_ants: the amount of your ants on this cell
@@ -167,6 +173,7 @@ while True:
         resources, my_ants, opp_ants = [int(j) for j in input().split()]
         all_cells[r].set_curr(resources, my_ants, opp_ants)
         total_my_ants += my_ants
+        total_oop_ants += opp_ants
         total_crystals += (resources if resources > 0 and resource_type[r] == 2 else 0)
         total_eggs += (resources if resources > 0 and resource_type[r] == 1 else 0)
 
@@ -201,41 +208,72 @@ while True:
     finished_routes = []
     routes_length = 0
     double_strength = set()
+    max_opp_ants = 0
     for r in pre_routes:
-        if all_cells[r[1]].resources > 0: # and all_cells[i].my_ants > 0:
+        max_opp_ants = max(max_opp_ants, all_cells[r[1]].opp_ants if all_cells[r[1]].my_ants else 0)
+        if all_cells[r[1]].resources > 0 \
+            and (all_cells[r[1]].opp_ants <= all_cells[r[1]].my_ants \
+                 or (all_cells[r[1]].opp_ants > all_cells[r[1]].my_ants and total_my_ants > total_oop_ants)): # and all_cells[i].my_ants > 0:
             routes.append(r)
         if all_cells[r[1]].resources == 0 and all_cells[r[1]].my_ants > 0:
             finished_routes.append(r)
-    print(f"finished: {finished_routes}, routes: {routes}", file=sys.stderr, flush=True)
-    #for i in finished_list:
-    #    closest_resource = find_closest_resource(i, factor)
-    #    if closest_resource not in dest:
-    #        dest.append(closest_resource)
-    #print(f"pre_dest: {dest}", file=sys.stderr, flush=True)
+
+    for r in pre_routes:
+        if r not in routes:
+            for d in my_base_index[all_cells[r[1]].belongs_to].sorted_dest:
+                new_route = (my_base_index[all_cells[r[1]].belongs_to].index, d)
+                if new_route not in routes and (all_cells[d].opp_ants <= all_cells[d].my_ants or total_my_ants > total_oop_ants):
+                    print(f"new_route: {new_route}", file=sys.stderr, flush=True)
+                    routes.append(new_route)
+                    break
+
     for r in routes:
         routes_length += get_distance(r[0], r[1])
     base_has_dest = [obj for obj in my_base_index if len(obj.dest) > 0]
     route_add = 0
+    new_route_threshold = max(3, max_opp_ants)
+    print(f"finished: {finished_routes}, routes: {routes} threshold: {new_route_threshold}", file=sys.stderr, flush=True)
     while (routes_length == 0) \
-        or (total_my_ants / routes_length >= 3 \
-            and route_add < max([len(b.sorted_dest) for b in base_has_dest])):
+        or (total_my_ants / routes_length >= new_route_threshold+1 \
+            and route_add < max([len(b.sorted_dest) for b in base_has_dest])\
+            and (all(all_cells[r[1]].my_ants >= new_route_threshold for r in routes) \
+                 or any(all_cells[r[1]].my_ants >= 2*new_route_threshold for r in routes))):
         for b in base_has_dest:
             # find the target from b.index
-            if len(b.sorted_dest) > route_add and (b.index, b.sorted_dest[route_add]) not in routes:
+            if len(b.sorted_dest) > route_add \
+                and (b.index, b.sorted_dest[route_add]) not in routes\
+                    and (all_cells[b.index].opp_ants <= all_cells[b.index].my_ants or total_my_ants > total_oop_ants):
+                print(f"new_route2: {(b.index, b.sorted_dest[route_add])}", file=sys.stderr, flush=True)
                 routes.append((b.index, b.sorted_dest[route_add]))
                 routes_length += get_distance(b.index, b.sorted_dest[route_add])
         route_add += 1
 
+    route_add = 0
+    while (routes_length == 0) \
+        or (total_my_ants / routes_length >= new_route_threshold+1 \
+            and route_add < max([len(b.sorted_dest) for b in base_has_dest])\
+            and (all(all_cells[r[1]].my_ants >= new_route_threshold for r in routes) \
+                 or any(all_cells[r[1]].my_ants >= 2*new_route_threshold for r in routes))):
+        for b in base_has_dest:
+            # find the target from b.index
+            if len(b.sorted_dest) > route_add \
+                and (b.index, b.sorted_dest[route_add]) not in routes :
+                print(f"new_route3: {(b.index, b.sorted_dest[route_add])}", file=sys.stderr, flush=True)
+                routes.append((b.index, b.sorted_dest[route_add]))
+                routes_length += get_distance(b.index, b.sorted_dest[route_add])
+        route_add += 1
+    # print(f"find final routes: {routes} threshold: {new_route_threshold}", file=sys.stderr, flush=True)
+
     child_routes = []
     for d in routes:
-        if all_cells[d[1]].opp_ants >= all_cells[d[1]].my_ants \
-        and all_cells[d[1]].my_ants and all_cells[d[1]].resources > all_cells[d[1]].my_ants:
-            continue
-
+        print(f"d: {d} oop: {all_cells[d[1]].opp_ants}, my_ants: {all_cells[d[1]].my_ants}", file=sys.stderr, flush=True)
         if all_cells[d[1]].opp_ants and all_cells[d[1]].my_ants:
             double_strength.add(d)
-        #if all_cells[d[1]].my_ants == 0:
-        #    continue
+        if all_cells[d[1]].opp_ants >= all_cells[d[1]].my_ants \
+            and total_my_ants <= total_oop_ants \
+            and all_cells[d[1]].opp_ants > 0:
+            double_strength.add(d)
+            continue
 
         # Add child routes
         sub_d = find_closest_resources(d[1], 1)
