@@ -187,7 +187,7 @@ while True:
         if all_cells[r].resources:
             # factor = (100/total_my_ants*total_crystals/total_eggs if resource_type[i]==1 else 1)
             all_cells[r].value=(factor if resource_type[r]==1 else 1)*1.0/all_cells[r].distance #all_cells[i].resources*
-            if r == 0 and len(my_base_index) == 1:
+            if r == 0 and len(my_base_index) == 1 and total_my_ants > total_oop_ants:
                 all_cells[r].value = max(factor*0.9, 2.0)*1.0/all_cells[r].distance #all_cells[i].resources*
         elif all_cells[r].resource_type != 0:
             # there is no resource, remove from Base dest
