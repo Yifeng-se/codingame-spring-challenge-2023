@@ -225,7 +225,7 @@ while True:
             finished_routes.append(r)
 
     for r in pre_routes:
-        if r not in routes:
+        if r not in routes and all_cells[r[1]].resources > 0:
             for d in my_base_index[all_cells[r[1]].belongs_to].sorted_dest:
                 new_route = (my_base_index[all_cells[r[1]].belongs_to].index, d)
                 if new_route not in routes \
@@ -244,9 +244,11 @@ while True:
     new_route_threshold = max(3, max_opp_ants)
     print(f"finished: {finished_routes}, routes: {routes} threshold: {new_route_threshold}", file=sys.stderr, flush=True)
 
-    def routes_length_check(new_route):
+    def new_route_check(new_route):
         return routes_length == 0 \
-            or total_my_ants / (routes_length + get_distance(new_route[0], new_route[1])) >= new_route_threshold+1
+            or (total_my_ants / (routes_length + get_distance(new_route[0], new_route[1])) >= new_route_threshold+1 \
+            and (target_number -  myScore > sum(all_cells[r[1]].resources for r in routes + child_routes if all_cells[r[1]].resource_type == 2))
+            )
 
     while route_add < max([len(b.sorted_dest) for b in base_has_dest])\
             and (all(all_cells[r[1]].my_ants >= new_route_threshold for r in routes) \
@@ -258,7 +260,7 @@ while True:
                     and (all_cells[b.index].opp_ants <= all_cells[b.index].my_ants \
                          or total_my_ants > total_oop_ants \
                             or all_cells[b.index].resource_type == 2) \
-                        and routes_length_check((b.index, b.sorted_dest[route_add])):
+                        and new_route_check((b.index, b.sorted_dest[route_add])):
                 print(f"new_route2: {(b.index, b.sorted_dest[route_add])}", file=sys.stderr, flush=True)
                 routes.append((b.index, b.sorted_dest[route_add]))
                 routes_length += get_distance(b.index, b.sorted_dest[route_add])
@@ -302,7 +304,7 @@ while True:
                 else:
                     new_route = (d[1], s)
 
-                if routes_length_check(new_route):
+                if new_route_check(new_route):
                     child_routes.append(new_route)
 
 
