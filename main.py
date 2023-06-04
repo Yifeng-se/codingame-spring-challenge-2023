@@ -209,6 +209,7 @@ while True:
     # routes contains tuples, like [(0,35), (1, 25)], means "line 0 35" and "line 1 25"
     # routes can be from cell to cell, not necessary to be base to cell
     routes = []
+    child_routes = []
     finished_routes = []
     routes_length = 0
     double_strength = set()
@@ -259,31 +260,18 @@ while True:
                 and (b.index, b.sorted_dest[route_add]) not in routes\
                     and (all_cells[b.index].opp_ants <= all_cells[b.index].my_ants \
                          or total_my_ants > total_oop_ants \
-                            or all_cells[b.index].resource_type == 2) \
-                        and new_route_check((b.index, b.sorted_dest[route_add])):
-                print(f"new_route2: {(b.index, b.sorted_dest[route_add])}", file=sys.stderr, flush=True)
-                routes.append((b.index, b.sorted_dest[route_add]))
-                routes_length += get_distance(b.index, b.sorted_dest[route_add])
+                            or all_cells[b.index].resource_type == 2):
+                if new_route_check((b.index, b.sorted_dest[route_add])):
+                    print(f"new_route2: {(b.index, b.sorted_dest[route_add])}", file=sys.stderr, flush=True)
+                    routes.append((b.index, b.sorted_dest[route_add]))
+                    routes_length += get_distance(b.index, b.sorted_dest[route_add])
+                else: # We want to add b.sorted_dest[route_add], but don't have enough ants, better way
+                    route_add = 9999
+                    break
 
         route_add += 1
 
-    #route_add = 0
-    #while (routes_length == 0) \
-    #    or (total_my_ants / routes_length >= new_route_threshold+1 \
-    #        and route_add < max([len(b.sorted_dest) for b in base_has_dest])\
-    #        and (all(all_cells[r[1]].my_ants >= new_route_threshold for r in routes) \
-    #             or any(all_cells[r[1]].my_ants >= 2*new_route_threshold for r in routes))):
-    #    for b in base_has_dest:
-    #        # find the target from b.index
-    #        if len(b.sorted_dest) > route_add \
-    #            and (b.index, b.sorted_dest[route_add]) not in routes :
-    #            print(f"new_route3: {(b.index, b.sorted_dest[route_add])}", file=sys.stderr, flush=True)
-    #            routes.append((b.index, b.sorted_dest[route_add]))
-    #            routes_length += get_distance(b.index, b.sorted_dest[route_add])
-    #    route_add += 1
-    # print(f"find final routes: {routes} threshold: {new_route_threshold}", file=sys.stderr, flush=True)
 
-    child_routes = []
     for d in routes:
         print(f"d: {d} oop: {all_cells[d[1]].opp_ants}, my_ants: {all_cells[d[1]].my_ants}", file=sys.stderr, flush=True)
         if all_cells[d[1]].opp_ants and all_cells[d[1]].my_ants:
