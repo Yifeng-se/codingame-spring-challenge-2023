@@ -217,8 +217,9 @@ while True:
         max_opp_ants = max(max_opp_ants, all_cells[r[1]].opp_ants if all_cells[r[1]].my_ants else 0)
         if all_cells[r[1]].resources > 0 \
             and (all_cells[r[1]].opp_ants <= all_cells[r[1]].my_ants \
-                 or total_my_ants > total_oop_ants \
-                    or all_cells[r[1]].resource_type == 2): # and all_cells[i].my_ants > 0:
+                 or total_my_ants >= total_oop_ants \
+                 or all_cells[r[1]].resource_type == 1
+                 ): # and all_cells[i].my_ants > 0:
             routes.append(r)
         if all_cells[r[1]].resources == 0 and all_cells[r[1]].my_ants > 0:
             finished_routes.append(r)
