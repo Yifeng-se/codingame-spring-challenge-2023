@@ -151,7 +151,7 @@ for c in all_cells:
     c.belongs_to = c.distance_to_sources.index(min(c.distance_to_sources))
     c.distance = min(c.distance_to_sources)
     if c.resources > 0 \
-        and (c.resource_type != 1 or c.distance*1.0/c.distance_to_opp_base < 1.5 ):
+        and (c.resource_type != 1 or c.distance*1.0/c.distance_to_opp_base < 1.1 ):
         my_base_index[c.belongs_to].dest.append(c.index)
     # print(f"Cell: {c.index} {c.distance_to_sources} {c.distance} {c.belongs_to}", file=sys.stderr, flush=True)
 
@@ -187,6 +187,8 @@ while True:
         if all_cells[r].resources:
             # factor = (100/total_my_ants*total_crystals/total_eggs if resource_type[i]==1 else 1)
             all_cells[r].value=(factor if resource_type[r]==1 else 1)*1.0/all_cells[r].distance #all_cells[i].resources*
+            if r == 0 and len(my_base_index) == 1:
+                all_cells[r].value = max(factor*0.9, 2.0)*1.0/all_cells[r].distance #all_cells[i].resources*
         elif all_cells[r].resource_type != 0:
             # there is no resource, remove from Base dest
             if r in my_base_index[all_cells[r].belongs_to].dest:
@@ -196,7 +198,7 @@ while True:
 
     for b in my_base_index:
         tmp_dest = [all_cells[d] for d in b.dest]
-        sorted_tmp_dest = sorted(tmp_dest, key=lambda obj: obj.value, reverse=True)
+        sorted_tmp_dest = sorted(tmp_dest, key=lambda obj: (obj.value, obj.my_ants, -obj.index), reverse=True)
         b.sorted_dest = [d.index for d in sorted_tmp_dest]
 
         print(f"Base: {b.index} {b.dest} {b.sorted_dest}", file=sys.stderr, flush=True)
@@ -219,7 +221,8 @@ while True:
         if all_cells[r[1]].resources > 0 \
             and (all_cells[r[1]].opp_ants <= all_cells[r[1]].my_ants \
                  or total_my_ants >= total_oop_ants \
-                 or all_cells[r[1]].resource_type == 1
+                 or all_cells[r[1]].resource_type == 1 \
+                 or (r[1] == 0 and len(my_base_index) == 1)
                  ): # and all_cells[i].my_ants > 0:
             routes.append(r)
         if all_cells[r[1]].resources == 0 and all_cells[r[1]].my_ants > 0:
@@ -231,8 +234,8 @@ while True:
                 new_route = (my_base_index[all_cells[r[1]].belongs_to].index, d)
                 if new_route not in routes \
                     and (all_cells[d].opp_ants <= all_cells[d].my_ants \
-                         or total_my_ants > total_oop_ants
-                         #\ or all_cells[r[1]].resource_type == 2
+                         or total_my_ants > total_oop_ants \
+                         # or all_cells[r[1]].resource_type == 2
                         ):
                     print(f"new_route: {new_route}", file=sys.stderr, flush=True)
                     routes.append(new_route)
@@ -282,6 +285,10 @@ while True:
             double_strength.add(d)
             continue
 
+        # if cell 0 has resource but we haven't arrive there, don't create child routes
+        #if all_cells[0].resources > 0 and all_cells[0].my_ants == 0:
+        #    continue
+
         # Add child routes
         sub_d = find_closest_resources(d[1], 1)
         for s in sub_d:
@@ -310,5 +317,5 @@ while True:
         act += f"LINE {r[0]} {r[1]} {strength};"
 
     # WAIT | LINE <sourceIdx> <targetIdx> <strength> | BEACON <cellIdx> <strength> | MESSAGE <text>
-    print(f"{act}")
+    print(f"{act} MESSAGE {target_number-myScore} to go")
     pre_routes = routes[:]
